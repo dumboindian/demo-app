@@ -2,53 +2,62 @@ package com.example;
 
 import java.sql.*;
 import java.util.Scanner;
+import java.security.SecureRandom;
 import java.util.logging.Logger;
 
 public class App {
 
-    private static final Logger LOGGER = Logger.getLogger(App.class.getName());
-    private static final String USERNAME_PATTERN = "^\\w{3,20}$";
+    private static final Logger logger = Logger.getLogger(App.class.getName());
 
     public static void main(String[] args) {
 
-        try (Scanner sc = new Scanner(System.in)) {
+        Scanner sc = new Scanner(System.in);
 
-            LOGGER.info("Enter username: ");
-            String username = sc.nextLine();
+        System.out.print("Enter username: ");
+        String username = sc.nextLine();
 
-            // ✅ Input validation
-            if (username == null || !username.matches(USERNAME_PATTERN)) {
-                LOGGER.warning("Invalid username format.");
-                return;
-            }
-
-            String url = System.getenv("DB_URL");
-            String user = System.getenv("DB_USER");
-            String password = System.getenv("DB_PASSWORD");
-
-            if (url == null || user == null || password == null) {
-                LOGGER.severe("Database configuration missing.");
-                return;
-            }
-
-            try (Connection con = DriverManager.getConnection(url, user, password);
-                 PreparedStatement ps = con.prepareStatement(
-                         "SELECT username FROM users WHERE username = ?")) {
-
-                ps.setString(1, username);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    if (rs.next()) {
-                        LOGGER.info("User found.");
-                    } else {
-                        LOGGER.info("User not found.");
-                    }
-                }
-
-            } catch (SQLException e) {
-                LOGGER.severe("Database error.");
-            }
+        // ✅ Use the new method for validation
+        if (!isValidUsername(username)) {
+            System.out.println("Invalid username format.");
+            return;
         }
+
+        // ✅ Secure random OTP generation
+        SecureRandom secureRandom = new SecureRandom();
+        int otp = 100000 + secureRandom.nextInt(900000);
+
+        logger.info("OTP generated successfully"); // no sensitive data logged
+
+        // ✅ Database connection using environment variables (no hardcoding)
+        String url = System.getenv("DB_URL");
+        String user = System.getenv("DB_USER");
+        String password = System.getenv("DB_PASSWORD");
+
+        try (Connection con = DriverManager.getConnection(url, user, password);
+             PreparedStatement ps = con.prepareStatement(
+                     "SELECT * FROM users WHERE username = ?")) {
+
+            // ✅ Prevent SQL Injection
+            ps.setString(1, username);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                System.out.println("User found. OTP: " + otp);
+            } else {
+                System.out.println("User not found.");
+            }
+
+        } catch (SQLException e) {
+            // ✅ Safe error handling (no stack trace exposure)
+            logger.severe("Database error occurred.");
+        }
+
+        sc.close();
+    }
+
+    // ✅ NEW: Method for testing username validation
+    public static boolean isValidUsername(String username) {
+        return username != null && username.matches("^\\w{3,20}$");
     }
 }
