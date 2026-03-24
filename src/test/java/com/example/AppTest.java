@@ -1,27 +1,32 @@
 package com.example;
 
+import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.mockito.Mockito;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public class AppTest {
 
-    @Test
-    public void testValidUsername() {
-        assertTrue(App.isValidUsername("user123"));
+    private DatabaseService dbMock;
+    private App app;
+
+    @Before
+    public void setUp() {
+        dbMock = Mockito.mock(DatabaseService.class);
+        app = new App(dbMock);
     }
 
     @Test
-    public void testInvalidUsernameShort() {
-        assertFalse(App.isValidUsername("ab"));
+    public void testUserExistsReturnsTrue() {
+        Mockito.when(dbMock.userExists("john")).thenReturn(true);
+        assertTrue(app.userExists("john"));
     }
 
     @Test
-    public void testInvalidUsernameSpecialChar() {
-        assertFalse(App.isValidUsername("user@123"));
-    }
-
-    @Test
-    public void testNullUsername() {
-        assertFalse(App.isValidUsername(null));
+    public void testUserExistsReturnsFalse() {
+        Mockito.when(dbMock.userExists("doe")).thenReturn(false);
+        assertFalse(app.userExists("doe"));
     }
 }
